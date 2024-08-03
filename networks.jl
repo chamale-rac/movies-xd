@@ -28,6 +28,7 @@ function partitionTrainTest(data, at = 0.7)
     test_idx = view(idx, (floor(Int, at*n)+1):n)
     data[train_idx, :], data[test_idx, :]
 end
+# Split Reference: https://discourse.julialang.org/t/simple-tool-for-train-test-split/473/2
 
 # Apply partitioning function
 train_data, test_data = partitionTrainTest(data, 0.8)
@@ -79,6 +80,7 @@ function l2_penalty(model)
     lambda = 0.0001  # Adjusted lambda
     return lambda * sum(norm, Flux.params(model))
 end
+# L2 Reference https://fluxml.ai/Flux.jl/previews/PR1472/models/regularisation/
 
 # Define the loss function with L2 regularization
 loss2(x, y) = Flux.logitcrossentropy(model2(x), y) + l2_penalty(model2)
