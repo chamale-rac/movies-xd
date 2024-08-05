@@ -11,6 +11,7 @@ using Random
 using LinearAlgebra
 using Plots
 
+# Seed for reproducibility
 Random.seed!(1234)
 
 # Load the cleaned dataset
@@ -28,7 +29,6 @@ function partitionTrainTest(data, at = 0.7)
     test_idx = view(idx, (floor(Int, at*n)+1):n)
     data[train_idx, :], data[test_idx, :]
 end
-# Split Reference: https://discourse.julialang.org/t/simple-tool-for-train-test-split/473/2
 
 # Apply partitioning function
 train_data, test_data = partitionTrainTest(data, 0.8)
@@ -45,60 +45,29 @@ println("y_train size: ", size(y_train))
 println("X_test size: ", size(X_test))
 println("y_test size: ", size(y_test))
 
-train_loader = Flux.Data.DataLoader((X_train', y_train'), batchsize=32, shuffle=true)
-test_loader = Flux.Data.DataLoader((X_test', y_test'), batchsize=32)
+train_loader = Flux.Data.DataLoader((X_train', y_train'), batchsize=256, shuffle=true)
+test_loader = Flux.Data.DataLoader((X_test', y_test'), batchsize=256)
 
 println("Data loading completed")
 println("Train loader size: ", length(train_loader))
 println("Test loader size: ", length(test_loader))
 
-# Model 1: Simple Network with ReLU Activation and Dropout Regularization
-model1 = Chain(
-    Dense(size(X, 2), 128, relu),
-    Dropout(0.3),
-    Dense(128, 64, relu),
-    Dropout(0.3),
-    Dense(64, size(y, 2)),
-    softmax
-)
-
-# Define the loss function and optimizer
-loss1(x, y) = Flux.crossentropy(model1(x), y)
-opt1 = ADAM(0.001)  # Adjusted learning rate
-
-# Model 2: Deeper Network with ReLU Activation and L2 Regularization
-model2 = Chain(
-    Dense(size(X, 2), 256, relu),
+# Model 4: Deeper Network with Dropout, BatchNorm, and ReLU Activation
+model4 = Chain(
+    Dense(size(X, 2), 512, relu),
+    Dropout(0.5),
+    BatchNorm(512),
+    Dense(512, 256, relu),
+    Dropout(0.5),
+    BatchNorm(256),
     Dense(256, 128, relu),
-    Dense(128, 64, relu),
-    Dense(64, size(y, 2)),
-    softmax
-)
-
-# Define the L2 regularization term
-function l2_penalty(model)
-    lambda = 0.0001  # Adjusted lambda
-    return lambda * sum(norm, Flux.params(model))
-end
-# L2 Reference https://fluxml.ai/Flux.jl/previews/PR1472/models/regularisation/
-
-# Define the loss function with L2 regularization
-loss2(x, y) = Flux.logitcrossentropy(model2(x), y) + l2_penalty(model2)
-opt2 = ADAM(0.001)  # Using ADAM optimizer with adjusted learning rate
-
-# Model 3: Wider Network with Tanh Activation and Batch Normalization
-model3 = Chain(
-    Dense(size(X, 2), 512, tanh),
-    BatchNorm(512, relu),
-    Dense(512, 256, tanh),
-    BatchNorm(256, relu),
-    Dense(256, size(y, 2)),
+    Dense(128, size(y, 2)),
     softmax
 )
 
 # Define the loss function and optimizer
-loss3(x, y) = Flux.crossentropy(model3(x), y)
-opt3 = ADAM(0.001)  # Adjusted learning rate
+loss4(x, y) = Flux.crossentropy(model4(x), y)
+opt4 = Flux.Optimise.ADAM(0.02)
 
 # Function to evaluate the models
 function evaluate_model(model, test_loader)
@@ -120,7 +89,7 @@ function evaluate_model(model, test_loader)
 end
 
 # Function to train the models and store metrics
-function train_model(model, loss, opt, train_loader, test_loader, epochs=20)
+function train_model(model, loss, opt, train_loader, test_loader, epochs=50)
     train_accuracies = Float64[]
     val_accuracies = Float64[]
     train_losses = Float64[]
@@ -153,18 +122,12 @@ function train_model(model, loss, opt, train_loader, test_loader, epochs=20)
     return train_accuracies, val_accuracies, train_losses, val_losses, best_val_accuracy, best_epoch
 end
 
-# Train the models and store metrics
-println("Training Model 1")
-train_accuracies1, val_accuracies1, train_losses1, val_losses1, best_val_accuracy1, best_epoch1 = train_model(model1, loss1, opt1, train_loader, test_loader)
-println("Training Model 2")
-train_accuracies2, val_accuracies2, train_losses2, val_losses2, best_val_accuracy2, best_epoch2 = train_model(model2, loss2, opt2, train_loader, test_loader)
-println("Training Model 3")
-train_accuracies3, val_accuracies3, train_losses3, val_losses3, best_val_accuracy3, best_epoch3 = train_model(model3, loss3, opt3, train_loader, test_loader)
+# Train the model 4 and store metrics
+println("Training Model 4")
+train_accuracies4, val_accuracies4, train_losses4, val_losses4, best_val_accuracy4, best_epoch4 = train_model(model4, loss4, opt4, train_loader, test_loader)
 
-# Print the best validation accuracy and epoch for each model
-println("Best validation accuracy for Model 1: $best_val_accuracy1 at epoch $best_epoch1")
-println("Best validation accuracy for Model 2: $best_val_accuracy2 at epoch $best_epoch2")
-println("Best validation accuracy for Model 3: $best_val_accuracy3 at epoch $best_epoch3")
+# Print the best validation accuracy and epoch for model 4
+println("Best validation accuracy for Model 4: $best_val_accuracy4 at epoch $best_epoch4")
 
 # Plotting function
 function plot_metrics(epochs, train_metric, val_metric, metric_name, model_name)
@@ -173,23 +136,8 @@ function plot_metrics(epochs, train_metric, val_metric, metric_name, model_name)
     savefig("archive/results/$model_name$metric_name.png")
 end
 
-epochs = 1:20
+epochs = 1:50
 
-# Plot metrics for Model 1
-plot_metrics(epochs, train_accuracies1, val_accuracies1, "Accuracy", "Model1")
-plot_metrics(epochs, train_losses1, val_losses1, "Loss", "Model1")
-
-# Plot metrics for Model 2
-plot_metrics(epochs, train_accuracies2, val_accuracies2, "Accuracy", "Model2")
-plot_metrics(epochs, train_losses2, val_losses2, "Loss", "Model2")
-
-# Plot metrics for Model 3
-plot_metrics(epochs, train_accuracies3, val_accuracies3, "Accuracy", "Model3")
-plot_metrics(epochs, train_losses3, val_losses3, "Loss", "Model3")
-
-# Plot all models' accuracies in one graph (val accuracy)
-plot(epochs, val_accuracies1, label="Model1", xlabel="Epoch", ylabel="Accuracy", title="Validation Accuracy Over Epochs")
-plot!(epochs, val_accuracies2, label="Model2")
-plot!(epochs, val_accuracies3, label="Model3")
-
-savefig("archive/results/ValAccuracy.png")
+# Plot metrics for Model 4
+plot_metrics(epochs, train_accuracies4, val_accuracies4, "Accuracy", "Model4")
+plot_metrics(epochs, train_losses4, val_losses4, "Loss", "Model4")
