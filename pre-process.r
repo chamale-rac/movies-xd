@@ -198,3 +198,13 @@ write_csv(final_data, "./archive/final_data.csv")
 final_dim <- dim(final_data)
 
 cat("Percentage of data retained: ", final_dim[1] / initial_dim[1] * 100, "%\n")
+
+# Genres frequency chart
+final_data %>%
+    gather(key = "genre", value = "value", -selected_feature) %>%
+    filter(value == 1) %>%
+    count(genre) %>%
+    ggplot(aes(x = reorder(genre, n), y = n)) +
+    geom_bar(stat = "identity") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+

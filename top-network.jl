@@ -1,6 +1,6 @@
 # Import necessary packages
-# using Pkg
-# Pkg.add(["Flux", "CSV", "DataFrames", "Statistics", "MLUtils", "Random", "Plots"])
+using Pkg
+Pkg.add(["Flux", "CSV", "DataFrames", "Statistics", "MLUtils", "Random", "Plots"])
 
 using Flux
 using CSV
@@ -15,7 +15,7 @@ using Plots
 Random.seed!(1234)
 
 # Load the cleaned dataset
-data = CSV.read("./archive/final_data.csv", DataFrame)
+data = CSV.read("./archive/final_data_top_7_genres.csv", DataFrame)
 
 # Split the data into features and target
 X = select(data, Not(r"adventure|drama|family|action|comedy|fantasy|animation|sci-fi|thriller|war|crime|history|biography|sport|romance|horror|musical|mystery|western|music|documentary|film-noir|news")) |> Matrix
@@ -26,7 +26,7 @@ function partitionTrainTest(data, at = 0.7)
     n = nrow(data)
     idx = shuffle(1:n)
     train_idx = view(idx, 1:floor(Int, at*n))
-    test_idx = view(idx, (floor(Int, at*n)+1):n)
+        test_idx = view(idx, (floor(Int, at*n)+1):n)
     data[train_idx, :], data[test_idx, :]
 end
 

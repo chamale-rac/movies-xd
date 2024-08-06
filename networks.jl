@@ -1,6 +1,6 @@
 # Import necessary packages
-# using Pkg
-# Pkg.add(["Flux", "CSV", "DataFrames", "Statistics", "MLUtils", "Random", "Plots"])
+using Pkg
+Pkg.add(["Flux", "CSV", "DataFrames", "Statistics", "MLUtils", "Random", "Plots"])
 
 using Flux
 using CSV
